@@ -10,30 +10,38 @@ window = pyglet.window.Window()
 TwoVector_ = namedtuple('TwoVector', ['x','y'])
 class TwoVector(TwoVector_):
     def __add__(self, other):
+        """ Add together two vectors component-wise."""
         return TwoVector(self.x + other.x, self.y + other.y)
     
     def __sub__(self, other):
+        """ Subtract two vectors component-wise."""
         return TwoVector(self.x - other.x, self.y - other.y)
     
     def __mul__(self, other):
+        """ If other is a vector, then return the dot product of two vectors. Otherwise, scalar multiplication. """
         if isinstance(other, TwoVector):
             return self.x*other.x + self.y*other.y
         else:
             return TwoVector( self.x*other, self.y*other)
     
     def __div__(self, other):
+        """ Scalar division. """
         return TwoVector(self.x/other, self.y/other)
 
     def __pow__(self, other):
+        """ Component-wise exponentiation. """
         return TwoVector(self.x**other,  self.y**other)
     
     def __abs__(self):
+        """ Returns the magnitude of the vector. """
         return math.sqrt(self.x*self.x + self.y*self.y)
 
     def __neg__(self):
+        """ Returns the inverse of the vector. """
         return TwoVector(-self.x, -self.y)
 
     def __rshift__(self, other):
+        """ Returns a unit vector pointing from this vector to the other vector. """
         temp = other-self
         return temp/abs(temp)
 
@@ -41,6 +49,7 @@ G = 6.674e-11
 G = 20
 
 def f_gravity(pos1, mass1, pos2, mass2):
+    """ Returns the force of gravity exerted by object 2 on object 1, as a vector. """
     return (pos1>>pos2)*G*mass1*mass2/abs(pos1-pos2)
 
 class Body():
@@ -67,11 +76,10 @@ class Ship():
         self.buffer = deque()
 
     def step(self, dt):
-        '''
+        """
             Step the simulation forward by dt.  Keep track of remainder, if dt doesn't lie on a tick.
-        '''
+        """
         ticks, self.remainder = divmod(self.remainder + dt, self.tick_size)
-        #print "step: dt:", dt, "ticks:", ticks, "remainder:", self.remainder
 
         while( ticks > 0 ):
             self.predict( 10 -len(self.buffer) )
@@ -83,13 +91,11 @@ class Ship():
         
 
     def predict(self, ticks):
-        '''
+        """
             Predict for some number of ticks, place in buffer.
-        '''
-        #print "predict:",
+        """
 
         while ticks > 0:
-            #print ticks, 
             if len(self.buffer) > 0:
                 last_pos, last_vel = self.buffer[-1]
             else:
