@@ -2,10 +2,15 @@ import pyglet
 import math
 import Queue
 from collections import namedtuple, deque
+from pyglet.window import key
 
+# Check if the spacebar is currently pressed:
 fps_display = pyglet.clock.ClockDisplay()
 
 window = pyglet.window.Window()
+keys = key.KeyStateHandler()
+window.push_handlers(keys)
+
 
 TwoVector_ = namedtuple('TwoVector', ['x','y'])
 class TwoVector(TwoVector_):
@@ -75,11 +80,19 @@ class Ship():
 
         self.buffer = deque()
 
+    def clear_buffer(self):
+        self.buffer.clear()
+    
+
+
     def step(self, dt):
         """
             Step the simulation forward by dt.  Keep track of remainder, if dt doesn't lie on a tick.
         """
         ticks, self.remainder = divmod(self.remainder + dt, self.tick_size)
+        
+        if keys[key.UP] or keys[key.DOWN] or keys[key.LEFT] or keys[key.RIGHT]:
+            self.clear_buffer()
 
         while( ticks > 0 ):
             self.predict( 10 -len(self.buffer) )
@@ -109,6 +122,15 @@ class Ship():
             for b in bodies:
                 f_g += f_gravity(last_pos, self.mass, b.pos, b.mass)
         
+            if keys[key.UP]:
+                f_g += TwoVector(0, 300)
+            if keys[key.DOWN]:
+                f_g += TwoVector(0, -300)
+            if keys[key.LEFT]:
+                f_g += TwoVector(-300, 0)
+            if keys[key.RIGHT]:
+                f_g += TwoVector(300, 0)
+
             #pos = p_old + v*dt + f_g/m*dt^2
             new_pos = last_pos + (last_vel * self.tick_size) + f_g / self.mass * self.tick_size * self.tick_size
             #vel = v_old + f_g/m*dt
@@ -118,21 +140,30 @@ class Ship():
 
             ticks -=1
 
-bodies = set( [ Body( TwoVector(200,100), 100, 20),
-                Body( TwoVector(250,300), 50, 10),
-                Body( TwoVector(275,200), 50, 10) ] )
+bodies = set( [ Body( TwoVector(300,300), 200, 20) ])#,
+                #Body( TwoVector(250,300), 100, 10),
+                #Body( TwoVector(275,200), 100, 10) ] )
 
-ship = Ship( TwoVector(0,0), TwoVector(0,0), 2, 5 )
+ship = Ship( TwoVector(200,200), TwoVector(0,0), 2, 5 )
 
 def draw_body(b):
     x = b.pos.x
     y = b.pos.y
     r = b.radius
-   
-    pyglet.graphics.draw_indexed(4, pyglet.gl.GL_TRIANGLES,
-        [0, 1, 2, 0, 2, 3],
-        ('v2f', (x-r/2, y-r/2, x+r/2, y-r/2, x+r/2, y+r/2, x-r/2, y+r/2))
-    )
+    num_sides = 20
+
+    v = [x, y]
+    for n in range(0, num_sides + 1):
+        a = 2*math.pi/num_sides*n
+        v.append( x + r*math.cos(a) )
+        v.append( y + r*math.sin(a) )
+    
+    pyglet.graphics.draw(len(v)/2, pyglet.gl.GL_TRIANGLE_FAN, ('v2f', v  ))
+
+    #pyglet.graphics.draw_indexed(4, pyglet.gl.GL_TRIANGLES,
+    #    [0, 1, 2, 0, 2, 3],
+    #    ('v2f', (x-r/2, y-r/2, x+r/2, y-r/2, x+r/2, y+r/2, x-r/2, y+r/2))
+    #)
 
 def draw_arrow(x, y, dx, dy):
     line_angle = math.atan2(dy, dx)
@@ -150,12 +181,12 @@ def draw_arrow(x, y, dx, dy):
 
 
 
-def draw_buffer(ship):
+def draw_buffer(ship, length=0):
     points = []
     for b in ship.buffer:
         points.append(b[0].x)
         points.append(b[0].y)
-
+    
     pyglet.graphics.draw( len(points) / 2, pyglet.gl.GL_LINE_STRIP, ('v2f', points))
     
 @window.event
@@ -166,8 +197,8 @@ def on_draw():
         draw_body(b)
 
     draw_body(ship)
-    #draw_buffer(ship)
-    draw_arrow(ship.pos.x, ship.pos.y, ship.vel.x, ship.vel.y)
+    draw_buffer(ship)
+    draw_arrow(ship.pos.x, ship.pos.y, ship.vel.x/2, ship.vel.y/2)
     fps_display.draw()
 
 
